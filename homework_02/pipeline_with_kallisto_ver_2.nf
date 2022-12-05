@@ -36,7 +36,7 @@ process FastQC {
     path fastq_path
 
   output:
-    path "fastqc/*"
+    path "fastqc/*.html"
 
   script:
     """
@@ -64,23 +64,26 @@ process MultiQC {
 
 // Kallisto quant algorithm, which quantifies abundances of transcripts
 process KallistoQuant {
-  publishDir "${params.results_dir}/${sra}"
+  publishDir "${params.results_dir}/kallisto"
 
   input:
+    val sra
     val layout_type
     path fastq_file
 
   output:
-    path "kallisto/*"
+    path "${sra}/*"
 
   script:
   if( layout_type == 'SINGLE' )
     """
-    /content/kallisto/build/src/kallisto quant -i ${params.index} -o kallisto/ --single -l 180 -s 20 ${fastq_file}
+    mkdir ${sra}
+    /content/kallisto/build/src/kallisto quant -i ${params.index} -o ${sra} --single -l 180 -s 20 ${fastq_file}
     """
   else if( layout_type == 'PAIRED' )
     """
-    /content/kallisto/build/src/kallisto quant -i ${params.index} -o kallisto/ ${fastq_file}
+    mkdir ${sra}
+    /content/kallisto/build/src/kallisto quant -i ${params.index} -o ${sra} ${fastq_file}
     """
 }
 
@@ -90,5 +93,5 @@ workflow {
   FastQC( data, DownloadFastQ.out )
   MultiQC( data, FastQC.out.collect() )
   layout_type = Channel.of( params.layout )
-  KallistoQuant( layout_type, DownloadFastQ.out )
+  KallistoQuant( data, params.layout, DownloadFastQ.out )
 }
