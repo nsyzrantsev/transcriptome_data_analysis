@@ -25,7 +25,7 @@ process DownloadFastQ {
     """
 }
 
-# Kallisto | Bustools process, which evaluate gene expressions by the pseudoalignment and save expressions in .h5ad file
+// Kallisto | Bustools process, which evaluate gene expressions by the pseudoalignment and save expressions in .h5ad file
 process KalistoBustools {
   publishDir "${params.results_dir}"
 
@@ -42,6 +42,7 @@ process KalistoBustools {
     """
 }
 
+// Delete droplets from .h5ad files
 process DropletUtils {
   publishDir "${params.results_dir}"
 
