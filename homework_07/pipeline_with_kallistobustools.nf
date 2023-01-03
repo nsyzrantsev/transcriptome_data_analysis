@@ -62,5 +62,5 @@ workflow {
   data = Channel.of( SRA_list )
   DownloadFastQ( data )
   KalistoBustools( DownloadFastQ.out )
-  DropletUtils( KalistoBus.out )
+  DropletUtils( KalistoBustools.out )
 }
