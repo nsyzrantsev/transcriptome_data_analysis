@@ -12,7 +12,9 @@ from rpy2.robjects.packages import importr
 
 def deseq2(adata, formula):
     '''
-    Wrapper function of DESeq2 R package, that compute differential expression by condition (formula).
+    Wrapper function of DESeq2 R package, 
+    that compute differential expression 
+    with single cell data.
     ----------
     adata : AnnData
         Annotated data matrix.
@@ -100,7 +102,7 @@ def deseq2_clusters(adata,
     '''
     Wrapper function of DESeq2 R package, 
     that compute differential expression 
-    by condition (formula).
+    with clusterized single cell data.
     ----------
     adata : AnnData
         Annotated data matrix.
