@@ -10,14 +10,18 @@ from rpy2.robjects import pandas2ri, Formula
 from rpy2.robjects.packages import importr
 
 
-def deseq2(adata, formula, output_name='deseq2_output'):
+def deseq2(adata, formula):
     '''
     Wrapper function of DESeq2 R package, that compute differential expression by condition (formula).
     ----------
     adata : AnnData
         Annotated data matrix.
-    formula : string
+    formula : str
         Formula for DESeq2 model
+
+    Returns
+    ----------
+    AnnData object.
     '''
 
     # Import DESeq2 library from R to Python
@@ -34,11 +38,10 @@ def deseq2(adata, formula, output_name='deseq2_output'):
     # Write DESeq2 results into AnnData object    
     adata.uns["deseq2"] = dds
 
-    # Save DESeq2 output
-    save_deseq2_results(adata, output_name)
+    return adata
 
 
-def save_deseq2_results(adata, output_name):
+def write_deseq2(adata, output):
     '''
     This saves AnnData Object with DESeqDataSet object into two file:
     .rds file (DESeqDataSet object) and
@@ -46,7 +49,7 @@ def save_deseq2_results(adata, output_name):
     ----------
     adata : AnnData
         Annotated data matrix.
-    file_name : string
+    output : str
         Save file name.
     '''
 
@@ -54,31 +57,85 @@ def save_deseq2_results(adata, output_name):
     saveRDS = ro.r['saveRDS']
 
     # Save R DESeqDataSet object with DESeq2 results into .rds file
-    saveRDS(adata.uns["deseq2"], f'{output_name}.rds')
+    saveRDS(adata.uns["deseq2"], f'{output}.rds')
 
     del adata.uns["deseq2"]
 
     # Save Python object AnnData object without DESeq2 results into .h5ad file
-    adata.write(f'{output_name}.h5ad')
+    adata.write(f'{output}.h5ad')
 
 
-def read_deseq2_output(output_name):
+def read_deseq2(read_name):
     '''
-    This reads DESeqDataSet object and AnnData object and returns AnnData Object with DESeq2 results.
+    This reads DESeqDataSet object and AnnData object
+    and returns AnnData Object with DESeq2 results.
     ----------
     adata : AnnData
         Annotated data matrix.
-    file_name : string
-        Save file name.
+    read_name : str
+        Read file name.
+
+    Returns
+    ----------
+    AnnData object.
     '''
 
     # Read .h5ad file with AnnData object
-    adata = sc.read(f'{output_name}.h5ad')
+    adata = sc.read_h5ad(f'{read_name}.h5ad')
 
     # Import readRDS library
     readRDS = ro.r['readRDS']
 
     # Read .rds file and add it into AnnData object
-    adata.uns["deseq2"] = readRDS(f'{output_name}.rds')
+    adata.uns["deseq2"] = readRDS(f'{read_name}.rds')
+
+    return adata
+
+
+def deseq2_clusters(adata, 
+                    formula, 
+                    clusters_column='leiden', 
+                    output='deseq2_clusters'
+                    ):
+    '''
+    Wrapper function of DESeq2 R package, 
+    that compute differential expression 
+    by condition (formula).
+    ----------
+    adata : AnnData
+        Annotated data matrix.
+    formula : str
+        Formula for DESeq2 model
+    clusters_column : str
+        Clusters column name.
+    output : str
+        Save file name.
+    
+    Returns
+    ----------
+    AnnData object.
+    '''
+
+    # Create list of cluster indexes
+    clusters = adata.obs[clusters_column].value_counts().index.astype(str)
+    
+    # Intialized dictionary for saving 
+    # DESEq2 results for every cluster
+    adata.uns["deseq2"] = dict()
+
+    # Evaluate differential expressions for every cluster
+    for cluster in clusters:
+
+        # Select AnnData only for one cluster
+        cluster_adata = adata[adata.obs[clusters_column] == cluster]
+
+        # Run DESeq2 for current cluster
+        adata_with_dds = deseq2(cluster_adata, formula)
+
+        # Extract DESeq2 results
+        dds = adata_with_dds.uns["deseq2"]
+
+        # Save DESeq2 results into dictionary
+        adata.uns["deseq2"][cluster] = dds
 
     return adata
